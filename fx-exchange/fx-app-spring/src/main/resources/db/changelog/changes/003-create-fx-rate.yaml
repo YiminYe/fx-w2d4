@@ -1,0 +1,38 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-create-fx-rate
+      author: fx
+      comment: One row per pair per day. Activity 5 adds a timestamp so a live feed fits.
+      changes:
+        - createTable:
+            tableName: fx_rate
+            columns:
+              - column:
+                  name: id
+                  type: INT
+                  autoIncrement: true
+                  constraints: { primaryKey: true, nullable: false }
+              - column:
+                  name: base_code
+                  type: CHAR(3)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_rate_base
+                    references: currency(code)
+              - column:
+                  name: quote_code
+                  type: CHAR(3)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_rate_quote
+                    references: currency(code)
+              - column:
+                  name: rate
+                  type: DECIMAL(12,4)
+                  constraints: { nullable: false }
+              - column:
+                  name: rate_date
+                  type: DATE
+                  constraints: { nullable: false }
+      rollback:
+        - dropTable: { tableName: fx_rate }

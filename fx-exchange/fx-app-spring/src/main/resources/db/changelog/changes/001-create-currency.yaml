@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-currency
+      author: fx
+      comment: The eight currencies the exchange trades. Every other table points here.
+      changes:
+        - createTable:
+            tableName: currency
+            columns:
+              - column:
+                  name: code
+                  type: CHAR(3)
+                  constraints: { primaryKey: true, nullable: false }
+              - column:
+                  name: name
+                  type: VARCHAR(40)
+                  constraints: { nullable: false }
+              - column:
+                  name: symbol
+                  type: VARCHAR(4)
+      rollback:
+        - dropTable: { tableName: currency }

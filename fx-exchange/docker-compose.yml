@@ -1,0 +1,111 @@
+# ── Activity 2 end state ──────────────────────────────────────────────────────────
+# One command raises the database AND the app. Nothing is installed on the host.
+name: fx-stack
+
+services:
+  fx-db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: ${DB_NAME:-fxdb}
+      MYSQL_USER: ${DB_USERNAME:-appuser}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-apppass}
+    ports:
+      # LEFT = host port (a scarce, unique resource on YOUR machine).
+      # RIGHT = the port inside the container.
+      # 3307 on the left so this never fights a MySQL you installed in Week 1 on 3306.
+      - "${DB_PORT:-3307}:3306"
+    volumes:
+      # NAMED VOLUME — Docker owns it, it outlives `docker compose down`,
+      # and it is what `docker compose down -v` destroys.
+      - fx-db-data:/var/lib/mysql
+      # NO init-script mount any more. MySQL now starts with an EMPTY fxdb and
+      # Liquibase builds it on first boot of the app. One owner for the schema.
+    healthcheck:
+      # "container started" and "database accepts connections" are different moments.
+      # This is what makes depends_on below actually mean something.
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u$${MYSQL_USER} -p$${MYSQL_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  fx-app-spring:
+    # Each app owns its Dockerfile, in its own folder. `build:` is the CONTEXT — the
+    # directory Docker uploads and runs the Dockerfile against. Siblings are not in it.
+    build: ./fx-app-spring
+    # Without `image:` compose invents a name like `fx-stack-fx-app-spring`. Naming it
+    # ourselves means `docker images` shows something we chose, and `docker run` /
+    # `docker push` can refer to it later.
+    image: fx-app-spring:1.0
+    ports:
+      - "${API_PORT:-8080}:8080"
+    environment:
+      # fx-db, not localhost. Inside a container localhost is the container itself;
+      # compose gives every service a DNS name equal to its service name.
+      # 3306 here — the CONTAINER port. 3307 is only how YOU reach it from the host.
+      SPRING_DATASOURCE_URL: jdbc:mysql://fx-db:3306/${DB_NAME:-fxdb}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-appuser}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-apppass}
+      FX_ORCHESTRATOR_URL: http://fx-orchestrator:8080
+    depends_on:
+      fx-db:
+        condition: service_healthy
+
+  fx-monitor:
+    build: ./fx-monitor
+    image: fx-monitor:1.0
+    ports:
+      # 3000, NOT 8080. Publishing 8080 here fails with "port is already allocated"
+      # because fx-app-spring above already claimed it on the host. Container ports may
+      # repeat across containers; published host ports may not.
+      - "${MONITOR_PORT:-3000}:80"
+    environment:
+      # nginx proxies /api and /health to this host, by compose service name.
+      API_HOST: fx-app-spring
+    depends_on:
+      - fx-app-spring
+
+  # ── the upstream feed, and ITS OWN database ─────────────────────────────────────
+  orchestrator-db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: orchestratordb
+      MYSQL_USER: ${DB_USERNAME:-appuser}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-apppass}
+    ports:
+      # A THIRD host port. Two MySQL containers both listen on 3306 internally and never
+      # collide — but each needs its own port on your laptop to be reachable from outside.
+      - "${ORCH_DB_PORT:-3308}:3306"
+    volumes:
+      - orchestrator-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u$${MYSQL_USER} -p$${MYSQL_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  fx-orchestrator:
+    build: ./fx-orchestrator
+    image: fx-orchestrator:1.0
+    ports:
+      - "${ORCH_PORT:-8081}:8080"
+    environment:
+      DB_URL: jdbc:mysql://orchestrator-db:3306/orchestratordb
+      DB_USERNAME: ${DB_USERNAME:-appuser}
+      DB_PASSWORD: ${DB_PASSWORD:-apppass}
+      # Where it PUSHES batches — your app, by service name.
+      FX_TARGET_URL: http://fx-app-spring:8080
+      # The address it tells you to ACK back to. Must be reachable from YOUR container.
+      FX_SELF_URL: http://fx-orchestrator:8080
+    depends_on:
+      orchestrator-db:
+        condition: service_healthy
+      fx-app-spring:
+        condition: service_started
+
+volumes:
+  fx-db-data:
+  orchestrator-db-data:

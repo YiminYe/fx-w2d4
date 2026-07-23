@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008-seed-transfer
+      author: fx
+      comment: 200 transfers.
+      changes:
+        - sqlFile:
+            path: db/changelog/data/008-transfer.sql
+            splitStatements: false
+            stripComments: true
+      rollback:
+        - delete: { tableName: transfer }

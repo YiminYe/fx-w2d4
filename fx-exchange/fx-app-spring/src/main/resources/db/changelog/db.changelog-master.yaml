@@ -1,0 +1,15 @@
+# The schema of fxdb, as code, in order. Liquibase runs anything in here that this
+# database has not run before, records it in DATABASECHANGELOG, and skips the rest.
+#
+# THE RULE: never edit a change set that has already run anywhere. Add a new one.
+# (Activity 3 makes you break this rule on purpose so you recognise the error later.)
+databaseChangeLog:
+  - include: { file: db/changelog/changes/001-create-currency.yaml }
+  - include: { file: db/changelog/changes/002-create-account.yaml }
+  - include: { file: db/changelog/changes/003-create-fx-rate.yaml }
+  - include: { file: db/changelog/changes/004-create-transfer.yaml }
+  - include: { file: db/changelog/changes/005-seed-currency.yaml }
+  - include: { file: db/changelog/changes/006-seed-account.yaml }
+  - include: { file: db/changelog/changes/007-seed-fx-rate.yaml }
+  - include: { file: db/changelog/changes/008-seed-transfer.yaml }
+  - include: { file: db/changelog/changes/009-add-fx-rate-captured-at.yaml }

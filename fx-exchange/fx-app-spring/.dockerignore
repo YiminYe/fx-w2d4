@@ -1,0 +1,13 @@
+# Everything here is excluded from the build CONTEXT — the tarball Docker uploads to the
+# daemon before it runs a single instruction. Keep it small, and keep secrets out of it.
+#
+# Note what is NOT listed: fx-monitor and fx-orchestrator. They are SIBLINGS of this folder,
+# not children, so they were never in this build context to begin with. Laying the three apps
+# out side by side is what keeps each build context naturally small.
+target/
+.git/
+.github/
+.idea/
+*.iml
+docs/
+README.md

@@ -1,0 +1,8 @@
+# Workspace root. Each app keeps its own .gitignore for its own build output;
+# this one covers things that belong to the STACK rather than to any one app.
+
+# Real local config — .env.example is committed, .env never is. It is where a port
+# override (or, in a real project, a password) would live.
+.env
+
+.DS_Store

@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-seed-currency
+      author: fx
+      comment: The 8 seed-42 currencies.
+      changes:
+        - sqlFile:
+            path: db/changelog/data/005-currency.sql
+            splitStatements: false
+            stripComments: true
+      rollback:
+        - delete: { tableName: currency }

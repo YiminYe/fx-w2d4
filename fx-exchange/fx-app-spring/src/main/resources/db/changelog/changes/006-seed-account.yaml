@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 006-seed-account
+      author: fx
+      comment: 20 accounts. Data lives in a .sql file so the YAML stays readable.
+      changes:
+        - sqlFile:
+            path: db/changelog/data/006-account.sql
+            splitStatements: false
+            stripComments: true
+      rollback:
+        - delete: { tableName: account }

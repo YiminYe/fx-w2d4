@@ -1,0 +1,49 @@
+databaseChangeLog:
+
+  # The live feed writes many rows per pair per DAY, so `rate_date` alone can no longer
+  # answer "which is newest?". We need a timestamp.
+  #
+  # Note what we did NOT do: we did not go back and edit 003-create-fx-rate.yaml. That
+  # change set has already run on every machine in the room. This is the rule from
+  # Activity 3, in production form — the schema moves FORWARD, never sideways.
+  - changeSet:
+      id: 009-add-fx-rate-captured-at
+      author: fx
+      comment: Add captured_at so a live feed can insert many rows per pair per day.
+      changes:
+        - addColumn:
+            tableName: fx_rate
+            columns:
+              - column:
+                  name: captured_at
+                  type: DATETIME(3)
+      rollback:
+        - dropColumn: { tableName: fx_rate, columnName: captured_at }
+
+  # A schema change and a DATA migration are two different change sets. The seeded rows
+  # predate the column, so give them a sensible value instead of NULL.
+  - changeSet:
+      id: 009b-backfill-captured-at
+      author: fx
+      comment: Existing rows get captured_at = their rate_date at midnight.
+      changes:
+        - sql:
+            sql: UPDATE fx_rate SET captured_at = TIMESTAMP(rate_date) WHERE captured_at IS NULL
+      rollback:
+        - sql:
+            sql: UPDATE fx_rate SET captured_at = NULL
+
+  - changeSet:
+      id: 009c-index-fx-rate-lookup
+      author: fx
+      comment: The latest-per-pair query runs on every GET /api/rates and the table now grows fast.
+      changes:
+        - createIndex:
+            tableName: fx_rate
+            indexName: idx_fx_rate_pair_captured
+            columns:
+              - column: { name: base_code }
+              - column: { name: quote_code }
+              - column: { name: captured_at }
+      rollback:
+        - dropIndex: { tableName: fx_rate, indexName: idx_fx_rate_pair_captured }

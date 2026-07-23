@@ -1,0 +1,48 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-create-transfer
+      author: fx
+      changes:
+        - createTable:
+            tableName: transfer
+            columns:
+              - column:
+                  name: id
+                  type: INT
+                  autoIncrement: true
+                  constraints: { primaryKey: true, nullable: false }
+              - column:
+                  name: from_account
+                  type: INT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_transfer_from
+                    references: account(id)
+              - column:
+                  name: to_account
+                  type: INT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_transfer_to
+                    references: account(id)
+              - column:
+                  name: amount
+                  type: DECIMAL(12,2)
+                  constraints: { nullable: false }
+              - column:
+                  name: currency_code
+                  type: CHAR(3)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_transfer_currency
+                    references: currency(code)
+              - column:
+                  name: executed_at
+                  type: DATETIME
+                  constraints: { nullable: false }
+              - column:
+                  name: status
+                  type: VARCHAR(10)
+                  constraints: { nullable: false }
+      rollback:
+        - dropTable: { tableName: transfer }

@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 007-seed-fx-rate
+      author: fx
+      comment: 30 rates = 10 pairs x 3 days. Newest day 2026-01-12 holds EUR/USD 1.0818.
+      changes:
+        - sqlFile:
+            path: db/changelog/data/007-fx-rate.sql
+            splitStatements: false
+            stripComments: true
+      rollback:
+        - delete: { tableName: fx_rate }
